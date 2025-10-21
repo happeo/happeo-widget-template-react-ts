@@ -1,0 +1,64 @@
+image: cypress/base:14
+
+definitions:
+  caches:
+    npm: $HOME/.npm
+    cypress: $HOME/.cache/Cypress
+  steps:
+    - step: &build-staging
+        name: Staging Build
+        script:
+          - npm install
+          - npm run build:staging
+        artifacts:
+          - dist/**
+    - step: &build-production
+        name: Production Build
+        script:
+          - npm install
+          - npm run build:production
+        artifacts:
+          - dist/**
+    - step: &build-preproduction
+        name: Preproduction Build
+        script:
+          - npm install
+          - npm run build:preproduction
+        artifacts:
+          - dist/**
+    - step: &build-dev
+        name: Development Build
+        caches:
+          - node
+          - npm
+          - cypress
+        script:
+          - npm install
+          - npm run build
+    - step: &cypress-test
+        name: Cypress Tests
+        script:
+          - npm install
+          - npm run cypress:ci
+        artifacts:
+          - cypress/screenshots/**
+          - cypress/videos/**
+        caches:
+          - node
+          - npm
+          - cypress
+
+pipelines:
+  default:
+    - step: *build-dev
+    - step: *cypress-test
+  pull-requests:
+    "**":
+      - step: *build-dev
+      - step: *cypress-test
+  branches:
+    #the outcome of this pipeline will be that under dist/ we will get both the preprod and the prod bundles.
+    master:
+      - step: *build-preproduction
+      - step: *cypress-test
+      - step: *build-production
